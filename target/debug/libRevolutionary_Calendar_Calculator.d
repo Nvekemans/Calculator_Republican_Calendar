@@ -1,0 +1,1 @@
+C:\Users\sarou\Documents\Calculator_Republican_Calendar\target\debug\libRevolutionary_Calendar_Calculator.rlib: C:\Users\sarou\Documents\Calculator_Republican_Calendar\src\lib.rs C:\Users\sarou\Documents\Calculator_Republican_Calendar\src\republicanDate.rs

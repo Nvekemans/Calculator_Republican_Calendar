@@ -1,6 +1,6 @@
 
-use std::{collections::HashMap, fs, hash::Hash};
-#[derive(Clone, Copy)]
+use std::{collections::HashMap, fs};
+#[derive(Clone, Copy, PartialEq, Eq)]
 enum RepublicanMonth {
     Vendémiaire,
     Brumaire,
@@ -126,7 +126,11 @@ impl RepublicanDate {
     }
 
     pub fn get_date_string(&self) -> String {
+        if self.month == RepublicanMonth::Sansculottides {
+            return format!("{} jour complémentaire de l'an {}", self.get_day(), self.get_year());
+        }
         format!("{} de {} de l'an {}", self.get_day_name(), self.get_month_name(), self.get_year())
+
     }
 
     
