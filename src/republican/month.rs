@@ -18,7 +18,6 @@ pub enum RepublicanMonth {
 }
 
 impl RepublicanMonth {
-
     pub fn get_season(&self) -> &'static str {
         match self {
             Self::Vendémiaire | Self::Brumaire | Self::Frimaire => "Automne",
@@ -133,7 +132,10 @@ mod tests {
 
     #[test]
     fn test_try_from_valid() {
-        assert_eq!(RepublicanMonth::try_from(1), Ok(RepublicanMonth::Vendémiaire));
+        assert_eq!(
+            RepublicanMonth::try_from(1),
+            Ok(RepublicanMonth::Vendémiaire)
+        );
         assert_eq!(RepublicanMonth::try_from(2), Ok(RepublicanMonth::Brumaire));
         assert_eq!(RepublicanMonth::try_from(3), Ok(RepublicanMonth::Frimaire));
         assert_eq!(RepublicanMonth::try_from(4), Ok(RepublicanMonth::Nivôse));
@@ -143,16 +145,34 @@ mod tests {
         assert_eq!(RepublicanMonth::try_from(8), Ok(RepublicanMonth::Floréal));
         assert_eq!(RepublicanMonth::try_from(9), Ok(RepublicanMonth::Prairial));
         assert_eq!(RepublicanMonth::try_from(10), Ok(RepublicanMonth::Messidor));
-        assert_eq!(RepublicanMonth::try_from(11), Ok(RepublicanMonth::Thermidor));
-        assert_eq!(RepublicanMonth::try_from(12), Ok(RepublicanMonth::Fructidor));
-        assert_eq!(RepublicanMonth::try_from(13), Ok(RepublicanMonth::Sansculottides));
+        assert_eq!(
+            RepublicanMonth::try_from(11),
+            Ok(RepublicanMonth::Thermidor)
+        );
+        assert_eq!(
+            RepublicanMonth::try_from(12),
+            Ok(RepublicanMonth::Fructidor)
+        );
+        assert_eq!(
+            RepublicanMonth::try_from(13),
+            Ok(RepublicanMonth::Sansculottides)
+        );
     }
 
     #[test]
     fn test_try_from_invalid() {
-        assert_eq!(RepublicanMonth::try_from(0), Err("Invalid month number: 0".into()));
-        assert_eq!(RepublicanMonth::try_from(14), Err("Invalid month number: 14".into()));
-        assert_eq!(RepublicanMonth::try_from(255), Err("Invalid month number: 255".into()));
+        assert_eq!(
+            RepublicanMonth::try_from(0),
+            Err("Invalid month number: 0".into())
+        );
+        assert_eq!(
+            RepublicanMonth::try_from(14),
+            Err("Invalid month number: 14".into())
+        );
+        assert_eq!(
+            RepublicanMonth::try_from(255),
+            Err("Invalid month number: 255".into())
+        );
     }
 
     #[test]
@@ -165,7 +185,10 @@ mod tests {
         assert_eq!(format!("{}", RepublicanMonth::Messidor), "Messidor");
         assert_eq!(format!("{}", RepublicanMonth::Thermidor), "Thermidor");
         assert_eq!(format!("{}", RepublicanMonth::Fructidor), "Fructidor");
-        assert_eq!(format!("{}", RepublicanMonth::Sansculottides), "Sansculottides");
+        assert_eq!(
+            format!("{}", RepublicanMonth::Sansculottides),
+            "Sansculottides"
+        );
     }
 
     #[test]
@@ -175,5 +198,4 @@ mod tests {
             assert_eq!(u8::from(month), month_number);
         }
     }
-
 }

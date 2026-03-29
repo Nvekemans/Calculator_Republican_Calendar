@@ -1,4 +1,4 @@
-use crate::republican::month::{self, RepublicanMonth};
+use crate::republican::month::RepublicanMonth;
 use std::fmt;
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
@@ -10,49 +10,62 @@ pub struct RepublicanDate {
 
 impl fmt::Display for RepublicanDate {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "Nous sommes le {} de {} de l'an {}", self.get_day_name(), self.month, self.year)
+        write!(
+            f,
+            "Nous sommes le {} de {} de l'an {}",
+            self.get_day_name(),
+            self.month,
+            self.year
+        )
     }
-    
 }
 
 impl RepublicanDate {
     pub fn new(year: u32, month: u8, day: u8) -> Result<Self, String> {
-
         if year < 1 {
             return Err(format!("Invalid year: {}. Year must be at least 1.", year));
         }
 
-        if day < 1 || day > 30 {
-            return Err(format!("Invalid day: {}. Day must be between 1 and 30.", day));
+        if !(1..=30).contains(&day) {
+            return Err(format!(
+                "Invalid day: {}. Day must be between 1 and 30.",
+                day
+            ));
         }
 
         let month_enum = RepublicanMonth::try_from(month)
-        .map_err(|_| format!("Invalid month: {}. Month must be between 1 and 13.", month))?;
+            .map_err(|_| format!("Invalid month: {}. Month must be between 1 and 13.", month))?;
 
         if month_enum == RepublicanMonth::Sansculottides {
-            if (year % 4 == 0 && year % 100 != 0) || (year % 400 == 0) {
+            if (year.is_multiple_of(4) && !year.is_multiple_of(100)) || (year.is_multiple_of(400)) {
                 // Leap year, so there are 6 Sansculottides
                 if day > 6 {
-                    return Err(format!("Invalid day: {}. In a leap year, Sansculottides can have up to 6 days.", day));
+                    return Err(format!(
+                        "Invalid day: {}. In a leap year, Sansculottides can have up to 6 days.",
+                        day
+                    ));
                 }
             } else {
                 // Non-leap year, so there are only 5 Sansculottides
                 if day > 5 {
-                    return Err(format!("Invalid day: {}. In a non-leap year, Sansculottides can have up to 5 days.", day));
+                    return Err(format!(
+                        "Invalid day: {}. In a non-leap year, Sansculottides can have up to 5 days.",
+                        day
+                    ));
                 }
             }
         }
-        return Ok(RepublicanDate {
+        Ok(RepublicanDate {
             year,
             month: month_enum,
-            day: day,
-        });
+            day,
+        })
     }
 
     pub fn get_year(&self) -> u32 {
-            return self.year;
-        }
-    
+        self.year
+    }
+
     pub fn get_month(&self) -> RepublicanMonth {
         self.month
     }
@@ -74,23 +87,18 @@ impl RepublicanDate {
         self.month.get_season()
     }
 
-
     pub fn is_leap_year(&self) -> bool {
         // The leap years in the Republican calendar are every 4 years, except for years divisible by 100 but not by 400. This is the same rule as the Gregorian calendar, but with a different starting point.
-        (self.year % 4 == 0 && self.year % 100 != 0) || (self.year % 400 == 0)
+        (self.year.is_multiple_of(4) && !self.year.is_multiple_of(100)) || (self.year.is_multiple_of(400))
     }
 
-        pub fn get_tomorrow(&self) -> Self {
+    pub fn get_tomorrow(&self) -> Self {
         let mut day = self.day + 1;
         let mut month = u8::from(self.month);
         let mut year = self.year;
 
         if month == 13 {
-            if self.is_leap_year() && day > 6 {
-                day = 1;
-                month = 1;
-                year += 1;
-            } else if !self.is_leap_year() && day > 5 {
+            if self.is_leap_year() && day > 6 || !self.is_leap_year() && day > 5 {
                 day = 1;
                 month = 1;
                 year += 1;
@@ -123,7 +131,6 @@ impl RepublicanDate {
 
         Self::new(year, month, day).expect("Impossible date generated in get_yesterday")
     }
-
 }
 
 #[cfg(test)]
@@ -150,10 +157,7 @@ mod tests {
     #[test]
     fn test_new_invalid_day() {
         let err = RepublicanDate::new(232, 1, 31).unwrap_err();
-        assert_eq!(
-            err,
-            "Invalid day: 31. Day must be between 1 and 30."
-        );
+        assert_eq!(err, "Invalid day: 31. Day must be between 1 and 30.");
 
         let err = RepublicanDate::new(23, 5, 0).unwrap_err();
         assert_eq!(err, "Invalid day: 0. Day must be between 1 and 30.");
@@ -206,7 +210,6 @@ mod tests {
         );
     }
 
-
     #[test]
     fn test_sansculottides_non_leap_year() {
         // Non-leap year → 5 Sansculottides
@@ -225,8 +228,8 @@ mod tests {
     #[test]
     fn test_day_names() {
         let names = [
-            "Primidi", "Duodi", "Tridi", "Quartidi", "Quintidi",
-            "Sextidi", "Septidi", "Octidi", "Nonidi", "Décadi"
+            "Primidi", "Duodi", "Tridi", "Quartidi", "Quintidi", "Sextidi", "Septidi", "Octidi",
+            "Nonidi", "Décadi",
         ];
 
         for i in 1..=10 {
