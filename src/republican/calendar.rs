@@ -1,6 +1,7 @@
 use crate::republican::date::RepublicanDate;
 use time::Date;
 
+/// Converts a Gregorian date to a Republican date using the method of Romme.
 pub fn date_calculator_romme(date: Date) -> RepublicanDate {
     let start_date = Date::from_calendar_date(1792, time::Month::September, 22).unwrap(); // The start date of the Republican calendar is September 22, 1792
     let days_since_start = (date - start_date).whole_days() + 1; // +1 because the start date is the first day of the Republican calendar
@@ -12,7 +13,7 @@ pub fn date_calculator_romme(date: Date) -> RepublicanDate {
     RepublicanDate::new(year, month, day_of_month).expect("Error in the date conversion")
 }
 
-//** Returns the year and day of the year for a given number of days since the start date. */
+/// Returns the year and day of the year for a given number of days since the start date.
 fn get_year_number(mut days_since_start: u64) -> (u32, u64) {
     let mut year = 1;
     while days_since_start > 365 {
@@ -34,7 +35,7 @@ fn get_year_number(mut days_since_start: u64) -> (u32, u64) {
     (year, days_since_start)
 }
 
-//** Returns the month and day of the month for a given number of days since the start of the year. */
+/// Returns the month and day of the month for a given number of days since the start of the year.
 fn get_month_number(mut days_since_start: u64) -> (u8, u8) {
     let mut month = 1;
     while days_since_start > 30 {

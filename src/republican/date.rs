@@ -1,6 +1,7 @@
 use crate::republican::month::RepublicanMonth;
 use std::fmt;
 
+/// A date in the Republican calendar.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub struct RepublicanDate {
     year: u32,
@@ -21,6 +22,7 @@ impl fmt::Display for RepublicanDate {
 }
 
 impl RepublicanDate {
+    /// Creates a new RepublicanDate with the given year, month, and day. The method validates the input parameters to ensure they represent a valid date in the Republican calendar. If the parameters are valid, it returns a new instance of RepublicanDate; otherwise, it returns an error message indicating the reason for the failure (e.g., invalid day, month, or year).
     pub fn new(year: u32, month: u8, day: u8) -> Result<Self, String> {
         if year < 1 {
             return Err(format!("Invalid year: {}. Year must be at least 1.", year));
@@ -62,18 +64,22 @@ impl RepublicanDate {
         })
     }
 
+    /// Returns the year of the Republican date.
     pub fn get_year(&self) -> u32 {
         self.year
     }
-
+    
+    /// Returns the month of the Republican date.
     pub fn get_month(&self) -> RepublicanMonth {
         self.month
     }
-
+    
+    /// Returns the day of the Republican date.
     pub fn get_day(&self) -> u8 {
         self.day
     }
 
+    /// Returns the name of the day in the Republican calendar. The day names repeat every 10 days, so the method uses the modulo operator to determine the correct name based on the day number.
     pub fn get_day_name(&self) -> &'static str {
         // Decadi is the 10th day of the decade, it is first in the list because 10 % 10 = 0. This way, the day names repeat every 10 days.
         let day_names = [
@@ -83,13 +89,16 @@ impl RepublicanDate {
         day_names[(self.day % 10) as usize]
     }
 
+    /// Returns the season of the Republican date based on the month. The method delegates the retrieval of the season to the month, which has a method to determine its corresponding season.
     pub fn get_season(&self) -> &'static str {
         self.month.get_season()
     }
 
+    /// Returns whether the Republican date falls in a leap year. The leap year rules for the Republican calendar are the same as those for the Gregorian calendar, but with a different starting point. A year is a leap year if it is divisible by 4, except for years that are divisible by 100 but not by 400.
     pub fn is_leap_year(&self) -> bool {
         // The leap years in the Republican calendar are every 4 years, except for years divisible by 100 but not by 400. This is the same rule as the Gregorian calendar, but with a different starting point.
-        (self.year.is_multiple_of(4) && !self.year.is_multiple_of(100)) || (self.year.is_multiple_of(400))
+        (self.year.is_multiple_of(4) && !self.year.is_multiple_of(100))
+            || (self.year.is_multiple_of(400))
     }
 
     pub fn get_tomorrow(&self) -> Self {
