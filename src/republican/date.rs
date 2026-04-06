@@ -68,12 +68,12 @@ impl RepublicanDate {
     pub fn get_year(&self) -> u32 {
         self.year
     }
-    
+
     /// Returns the month of the Republican date.
     pub fn get_month(&self) -> RepublicanMonth {
         self.month
     }
-    
+
     /// Returns the day of the Republican date.
     pub fn get_day(&self) -> u8 {
         self.day
