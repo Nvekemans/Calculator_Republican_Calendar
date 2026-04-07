@@ -1,4 +1,4 @@
-use crate::republican::date::RepublicanDate;
+use crate::republican::{RepublicanMonth, date::RepublicanDate};
 use time::Date;
 
 /// Converts a Gregorian date to a Republican date using the method of Romme.
@@ -10,7 +10,9 @@ pub fn date_calculator_romme(date: Date) -> RepublicanDate {
 
     let (month, day_of_month) = get_month_number(day_of_year);
 
-    RepublicanDate::new(year, month, day_of_month).expect("Error in the date conversion")
+    let month = RepublicanMonth::try_from(month).expect("Invalid month number");
+
+    RepublicanDate::from_calendar_date(year, month, day_of_month).expect("Error in the date conversion")
 }
 
 /// Returns the year and day of the year for a given number of days since the start date.
@@ -58,32 +60,32 @@ mod tests {
     fn test_date_calculator_romme() {
         let date = Date::from_calendar_date(1792, time::Month::September, 22).unwrap();
         let republican_date = date_calculator_romme(date);
-        assert_eq!(republican_date.get_year(), 1);
-        assert_eq!(republican_date.get_month(), RepublicanMonth::Vendémiaire);
-        assert_eq!(republican_date.get_day(), 1);
+        assert_eq!(republican_date.year(), 1);
+        assert_eq!(republican_date.month(), RepublicanMonth::Vendémiaire);
+        assert_eq!(republican_date.day(), 1);
 
         let date = Date::from_calendar_date(1793, time::Month::October, 5).unwrap();
         let republican_date = date_calculator_romme(date);
-        assert_eq!(republican_date.get_year(), 2);
-        assert_eq!(republican_date.get_month(), RepublicanMonth::Vendémiaire);
-        assert_eq!(republican_date.get_day(), 14);
+        assert_eq!(republican_date.year(), 2);
+        assert_eq!(republican_date.month(), RepublicanMonth::Vendémiaire);
+        assert_eq!(republican_date.day(), 14);
 
         let date = Date::from_calendar_date(1794, time::Month::November, 10).unwrap();
         let republican_date = date_calculator_romme(date);
-        assert_eq!(republican_date.get_year(), 3);
-        assert_eq!(republican_date.get_month(), RepublicanMonth::Brumaire);
-        assert_eq!(republican_date.get_day(), 20);
+        assert_eq!(republican_date.year(), 3);
+        assert_eq!(republican_date.month(), RepublicanMonth::Brumaire);
+        assert_eq!(republican_date.day(), 20);
 
         let date = Date::from_calendar_date(1795, time::Month::December, 25).unwrap();
         let republican_date = date_calculator_romme(date);
-        assert_eq!(republican_date.get_year(), 4);
-        assert_eq!(republican_date.get_month(), RepublicanMonth::Nivôse);
-        assert_eq!(republican_date.get_day(), 5);
+        assert_eq!(republican_date.year(), 4);
+        assert_eq!(republican_date.month(), RepublicanMonth::Nivôse);
+        assert_eq!(republican_date.day(), 5);
 
         let date = Date::from_calendar_date(2026, time::Month::March, 26).unwrap();
         let republican_date = date_calculator_romme(date);
-        assert_eq!(republican_date.get_year(), 234);
-        assert_eq!(republican_date.get_month(), RepublicanMonth::Germinal);
-        assert_eq!(republican_date.get_day(), 6);
+        assert_eq!(republican_date.year(), 234);
+        assert_eq!(republican_date.month(), RepublicanMonth::Germinal);
+        assert_eq!(republican_date.day(), 6);
     }
 }

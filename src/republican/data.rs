@@ -23,11 +23,11 @@ impl DataCalendar {
     pub fn get_object(&self, date: RepublicanDate) -> Result<String> {
         Ok(self
             .object_json
-            .get(date.get_season())
+            .get(date.season())
             .expect("Season not found in data file")
-            .get(date.get_month().to_string().as_str())
+            .get(date.month().to_string().as_str())
             .expect("Month not found in data file")
-            .get(date.get_day().to_string().as_str())
+            .get(date.day().to_string().as_str())
             .expect("Day not found in data file")
             .clone())
     }
@@ -36,12 +36,14 @@ impl DataCalendar {
 #[cfg(test)]
 mod tests {
 
+    use crate::republican::RepublicanMonth;
+
     use super::*;
 
     #[test]
     fn test_get_object() {
         let data = DataCalendar::new("src/data.json");
-        let date = RepublicanDate::new(1, 12, 1).unwrap();
+        let date = RepublicanDate::from_calendar_date(1, RepublicanMonth::Fructidor, 1).unwrap();
         let object = data.get_object(date).unwrap();
         assert_eq!(object, "Prune");
     }

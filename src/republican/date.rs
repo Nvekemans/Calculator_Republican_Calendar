@@ -1,5 +1,6 @@
 use crate::republican::month::RepublicanMonth;
-use std::fmt;
+use std::{fmt};
+use time::Duration;
 
 /// A date in the Republican calendar.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
@@ -14,7 +15,7 @@ impl fmt::Display for RepublicanDate {
         write!(
             f,
             "Nous sommes le {} de {} de l'an {}",
-            self.get_day_name(),
+            self.day_name(),
             self.month,
             self.year
         )
@@ -22,8 +23,23 @@ impl fmt::Display for RepublicanDate {
 }
 
 impl RepublicanDate {
+
+    /// The minimum valid date in the Republican calendar, which is the 1st of Vendémiaire of year 1. This represents the starting point of the calendar.
+    pub const MIN: Self = Self {
+        year: 1,
+        month: RepublicanMonth::Vendémiaire,
+        day: 1,
+    };
+
+    /// The maximum valid date in the Republican calendar, which is the 5th of Sansculottides of the maximum year (u32::MAX). This represents the end point of the calendar. Note that the maximum year is not a leap year, so there are only 5 Sansculottides.
+    pub const MAX: Self = Self {
+        year: u32::MAX,
+        month: RepublicanMonth::Sansculottides,
+        day: 5, // Max day in Sansculottides for a non-leap year, which is the case for the maximum year as it is a odd number and thus not a leap year.
+    };
+
     /// Creates a new RepublicanDate with the given year, month, and day. The method validates the input parameters to ensure they represent a valid date in the Republican calendar. If the parameters are valid, it returns a new instance of RepublicanDate; otherwise, it returns an error message indicating the reason for the failure (e.g., invalid day, month, or year).
-    pub fn new(year: u32, month: u8, day: u8) -> Result<Self, String> {
+    pub fn from_calendar_date(year: u32, month: RepublicanMonth, day: u8) -> Result<Self, String> {
         if year < 1 {
             return Err(format!("Invalid year: {}. Year must be at least 1.", year));
         }
@@ -35,11 +51,8 @@ impl RepublicanDate {
             ));
         }
 
-        let month_enum = RepublicanMonth::try_from(month)
-            .map_err(|_| format!("Invalid month: {}. Month must be between 1 and 13.", month))?;
-
-        if month_enum == RepublicanMonth::Sansculottides {
-            if (year.is_multiple_of(4) && !year.is_multiple_of(100)) || (year.is_multiple_of(400)) {
+        if month == RepublicanMonth::Sansculottides {
+            if (Self::is_leap_year(year)) {
                 // Leap year, so there are 6 Sansculottides
                 if day > 6 {
                     return Err(format!(
@@ -59,28 +72,57 @@ impl RepublicanDate {
         }
         Ok(RepublicanDate {
             year,
-            month: month_enum,
+            month,
             day,
         })
     }
 
+    /// Creates a new RepublicanDate from the given year and ordinal day of the year. The method validates the input parameters to ensure they represent a valid date in the Republican calendar. If the parameters are valid, it calculates the corresponding month and day based on the ordinal day and returns a new instance of RepublicanDate; otherwise, it returns an error message indicating the reason for the failure (e.g., invalid year or ordinal day).
+    pub fn from_ordinal_date(year: u32, ordinal_day: u16) -> Result<Self, String> {
+        if year < 1 {
+            return Err(format!("Invalid year: {}. Year must be at least 1.", year));
+        }
+
+                
+        if ordinal_day < 1 || ordinal_day > 366 {
+            return Err(format!(
+                "Invalid ordinal day: {}. Ordinal day must be between 1 and 366.",
+                ordinal_day
+            ));
+        }
+
+        if ordinal_day == 366 && !Self::is_leap_year(year) {
+            return Err(format!(
+                "Invalid ordinal day: {}. Year {} is not a leap year, so it has only 365 days.",
+                ordinal_day, year
+            ));
+        }
+
+        let month = ((ordinal_day - 1) / 30 + 1) as u8;
+        let day = ((ordinal_day - 1) % 30 + 1) as u8;
+
+        let month_enum = RepublicanMonth::try_from(month).unwrap(); // This should never fail because we've already validated the ordinal day range
+
+        Ok(RepublicanDate { year, month: month_enum, day })
+    }
+
     /// Returns the year of the Republican date.
-    pub fn get_year(&self) -> u32 {
+    pub fn year(&self) -> u32 {
         self.year
     }
 
     /// Returns the month of the Republican date.
-    pub fn get_month(&self) -> RepublicanMonth {
+    pub fn month(&self) -> RepublicanMonth {
         self.month
     }
 
     /// Returns the day of the Republican date.
-    pub fn get_day(&self) -> u8 {
+    pub fn day(&self) -> u8 {
         self.day
     }
 
     /// Returns the name of the day in the Republican calendar. The day names repeat every 10 days, so the method uses the modulo operator to determine the correct name based on the day number.
-    pub fn get_day_name(&self) -> &'static str {
+    pub fn day_name(&self) -> &'static str {
         // Decadi is the 10th day of the decade, it is first in the list because 10 % 10 = 0. This way, the day names repeat every 10 days.
         let day_names = [
             "Décadi", "Primidi", "Duodi", "Tridi", "Quartidi", "Quintidi", "Sextidi", "Septidi",
@@ -90,24 +132,46 @@ impl RepublicanDate {
     }
 
     /// Returns the season of the Republican date based on the month. The method delegates the retrieval of the season to the month, which has a method to determine its corresponding season.
-    pub fn get_season(&self) -> &'static str {
+    pub fn season(&self) -> &'static str {
         self.month.get_season()
     }
 
-    /// Returns whether the Republican date falls in a leap year. The leap year rules for the Republican calendar are the same as those for the Gregorian calendar, but with a different starting point. A year is a leap year if it is divisible by 4, except for years that are divisible by 100 but not by 400.
-    pub fn is_leap_year(&self) -> bool {
-        // The leap years in the Republican calendar are every 4 years, except for years divisible by 100 but not by 400. This is the same rule as the Gregorian calendar, but with a different starting point.
-        (self.year.is_multiple_of(4) && !self.year.is_multiple_of(100))
-            || (self.year.is_multiple_of(400))
+    /// Returns the ordinal day of the year for the Republican date. The method calculates the ordinal day by multiplying the month index (0-based) by 30 and adding the day of the month. This gives a unique number for each day of the year.
+    pub fn ordinal(&self) -> u16 {
+        let month_ordinal = (u8::from(self.month) - 1) as u16; // Convert month to 0-based index
+        month_ordinal * 30 + self.day as u16
     }
 
-    pub fn get_tomorrow(&self) -> Self {
+    /// Returns whether the given year is a leap year in the Republican calendar. The leap year rules are the same as the Gregorian calendar, but with a different starting point. A year is a leap year if it is divisible by 4 but not by 100, or if it is divisible by 400.
+    pub fn is_leap_year(year: u32) -> bool {
+        (year.is_multiple_of(4) && !year.is_multiple_of(100)) || (year.is_multiple_of(400))
+    }
+
+    /// Returns whether the Republican date falls in a leap year.
+    pub fn is_self_leap_year(&self) -> bool {
+        Self::is_leap_year(self.year)
+    }
+
+    /// Converts the Republican date to a tuple containing the year, month, and day. This method provides a way to represent the date in a more traditional calendar format.
+    pub fn to_calendar_date(&self) -> (u32, RepublicanMonth, u8) {
+        (self.year, self.month, self.day)
+    }
+
+    /// Converts the Republican date to a tuple containing the year and the ordinal day of the year.
+    pub fn to_ordinal_date(&self) -> (u32, u16) {
+        (self.year, self.ordinal())
+    }
+
+     pub fn tomorrow(&self) -> Option<Self> {
+        if self == &Self::MAX {
+            return None; // No tomorrow if we are at the maximum date
+        }
         let mut day = self.day + 1;
         let mut month = u8::from(self.month);
         let mut year = self.year;
 
         if month == 13 {
-            if self.is_leap_year() && day > 6 || !self.is_leap_year() && day > 5 {
+            if Self::is_leap_year(year) && day > 6 || !Self::is_leap_year(year) && day > 5 {
                 day = 1;
                 month = 1;
                 year += 1;
@@ -117,17 +181,20 @@ impl RepublicanDate {
             month += 1;
         }
 
-        Self::new(year, month, day).expect("Impossible date generated in get_tomorrow")
+        Some(Self::from_calendar_date(year, RepublicanMonth::try_from(month).unwrap(), day).expect("Impossible date generated in get_tomorrow"))
     }
 
-    pub fn get_yesterday(&self) -> Self {
+     pub fn yesterday(&self) -> Option<Self> {
+        if self == &Self::MIN {
+            return None; // No yesterday if we are at the minimum date
+        }
         let mut day = self.day - 1;
         let mut month = u8::from(self.month);
         let mut year = self.year;
 
         if month == 1 && day < 1 {
             month = 13;
-            if self.is_leap_year() {
+            if Self::is_leap_year(year) {
                 day = 6;
             } else {
                 day = 5;
@@ -138,8 +205,56 @@ impl RepublicanDate {
             day = 30;
         }
 
-        Self::new(year, month, day).expect("Impossible date generated in get_yesterday")
+        Some(Self::from_calendar_date(year, RepublicanMonth::try_from(month).unwrap(), day).expect("Impossible date generated in get_yesterday"))
     }
+
+    /// Adds a duration to the Republican date, returning the resulting date if the operation is valid.
+    pub fn checked_add(self, duration : Duration) -> Option<Self> {
+        let total_days = duration.whole_days();
+        if duration.is_negative() {
+            return self.checked_sub(-duration);
+        }
+        let mut result = self;
+        for _ in 0..total_days {
+            result = result.tomorrow()?;
+        }   
+        Some(result)
+    }
+
+    pub fn checked_sub(self, duration : Duration) -> Option<Self> {
+        let total_days = duration.whole_days();
+        if duration.is_negative() {
+            return self.checked_add(-duration);
+        }
+        let mut result = self;
+        for _ in 0..total_days {
+            result = result.yesterday()?;
+        }   
+        Some(result)
+    }
+
+    /// Replace the year. The month and day are kept the same. The method validates the new year along with the existing month and day to ensure that the resulting date is valid. If the new year is valid, it returns a new instance of RepublicanDate with the updated year; otherwise, it returns an error message indicating the reason for the failure (e.g., invalid year or resulting date).
+    pub fn replace_year(&self, new_year: u32) -> Result<Self, String> {
+        Self::from_calendar_date(new_year, self.month, self.day)
+    }
+
+    /// Replace the month. The year and day are kept the same. The method validates the new month along with the existing year and day to ensure that the resulting date is valid. If the new month is valid, it returns a new instance of RepublicanDate with the updated month; otherwise, it returns an error message indicating the reason for the failure (e.g., invalid month or resulting date).
+    pub fn replace_month(&self, new_month: RepublicanMonth) -> Result<Self, String> {
+        Self::from_calendar_date(self.year, new_month, self.day)
+    }
+
+    /// Replace the day. The year and month are kept the same. The method validates the new day along with the existing year and month to ensure that the resulting date is valid. If the new day is valid, it returns a new instance of RepublicanDate with the updated day; otherwise, it returns an error message indicating the reason for the failure (e.g., invalid day or resulting date).
+    pub fn replace_day(&self, new_day: u8) -> Result<Self, String> {
+        Self::from_calendar_date(self.year, self.month, new_day)
+    }
+
+
+    /// Gets the decade of the Republican date. The decade is calculated based on the day of the month, with each decade consisting of 10 days. The method returns a number between 1 and 3, indicating which decade the date falls into (1 for days 1-10, 2 for days 11-20, and 3 for days 21-30).
+    pub fn decade(&self) -> u8 {
+        (self.day - 1) / 10 + 1
+    }
+
+
 }
 
 #[cfg(test)]
@@ -150,69 +265,60 @@ mod tests {
     // Valid date creation
     #[test]
     fn test_new_valid_date() {
-        let date = RepublicanDate::new(89, 1, 1).unwrap();
-        assert_eq!(date.get_year(), 89);
-        assert_eq!(date.get_month(), RepublicanMonth::Vendémiaire);
-        assert_eq!(date.get_day(), 1);
+        let date = RepublicanDate::from_calendar_date(89, RepublicanMonth::Vendémiaire, 1).unwrap();
+        assert_eq!(date.year(), 89);
+        assert_eq!(date.month(), RepublicanMonth::Vendémiaire);
+        assert_eq!(date.day(), 1);
 
         // Mid-year date
-        let date = RepublicanDate::new(2025, 5, 15).unwrap();
-        assert_eq!(date.get_year(), 2025);
-        assert_eq!(date.get_month(), RepublicanMonth::Pluviôse);
-        assert_eq!(date.get_day(), 15);
+        let date = RepublicanDate::from_calendar_date(2025, RepublicanMonth::try_from(5).unwrap(), 15).unwrap();
+        assert_eq!(date.year(), 2025);
+        assert_eq!(date.month(), RepublicanMonth::Pluviôse);
+        assert_eq!(date.day(), 15);
     }
 
     // Invalid day
     #[test]
     fn test_new_invalid_day() {
-        let err = RepublicanDate::new(232, 1, 31).unwrap_err();
+        let err = RepublicanDate::from_calendar_date(232, RepublicanMonth::Vendémiaire, 31).unwrap_err();
         assert_eq!(err, "Invalid day: 31. Day must be between 1 and 30.");
 
-        let err = RepublicanDate::new(23, 5, 0).unwrap_err();
+        let err = RepublicanDate::from_calendar_date(23, RepublicanMonth::Pluviôse, 0).unwrap_err();
         assert_eq!(err, "Invalid day: 0. Day must be between 1 and 30.");
-    }
-
-    // Invalid month
-    #[test]
-    fn test_new_invalid_month() {
-        let err = RepublicanDate::new(32, 14, 1).unwrap_err();
-        assert_eq!(err, "Invalid month: 14. Month must be between 1 and 13.");
-        let err = RepublicanDate::new(2025, 0, 1).unwrap_err();
-        assert_eq!(err, "Invalid month: 0. Month must be between 1 and 13.");
     }
 
     // Invalid year
     #[test]
     fn test_new_invalid_year() {
-        let err = RepublicanDate::new(0, 1, 1).unwrap_err();
+        let err = RepublicanDate::from_calendar_date(0, RepublicanMonth::Vendémiaire, 1).unwrap_err();
         assert_eq!(err, "Invalid year: 0. Year must be at least 1.");
     }
 
     // Leap year detection
     #[test]
     fn test_leap_year() {
-        let d = RepublicanDate::new(1796, 1, 1).unwrap(); // leap year
-        assert!(d.is_leap_year());
+        let d = RepublicanDate::from_calendar_date(1796, RepublicanMonth::Vendémiaire, 1).unwrap(); // leap year
+        assert!(d.is_self_leap_year());
 
-        let d = RepublicanDate::new(27, 1, 1).unwrap(); // non-leap
-        assert!(!d.is_leap_year());
+        let d = RepublicanDate::from_calendar_date(27, RepublicanMonth::Vendémiaire, 1).unwrap(); // non-leap
+        assert!(!d.is_self_leap_year());
 
-        let d = RepublicanDate::new(1200, 1, 1).unwrap(); // leap year
-        assert!(d.is_leap_year());
+        let d = RepublicanDate::from_calendar_date(1200, RepublicanMonth::Vendémiaire, 1).unwrap(); // leap year
+        assert!(d.is_self_leap_year());
 
-        let d = RepublicanDate::new(200, 1, 1).unwrap(); // non-leap
-        assert!(!d.is_leap_year());
+        let d = RepublicanDate::from_calendar_date(200, RepublicanMonth::Vendémiaire, 1).unwrap(); // non-leap
+        assert!(!d.is_self_leap_year());
     }
 
     // Leap year & Sansculottides
     #[test]
     fn test_sansculottides_leap_year() {
         // Leap year → 6 Sansculottides
-        let date = RepublicanDate::new(16, 13, 6).unwrap();
-        assert_eq!(date.get_month(), RepublicanMonth::Sansculottides);
-        assert_eq!(date.get_day(), 6);
+        let date = RepublicanDate::from_calendar_date(16, RepublicanMonth::Sansculottides, 6).unwrap();
+        assert_eq!(date.month(), RepublicanMonth::Sansculottides);
+        assert_eq!(date.day(), 6);
 
-        let err = RepublicanDate::new(40, 13, 7).unwrap_err();
+        let err = RepublicanDate::from_calendar_date(40, RepublicanMonth::Sansculottides, 7).unwrap_err();
         assert_eq!(
             err,
             "Invalid day: 7. In a leap year, Sansculottides can have up to 6 days."
@@ -222,11 +328,11 @@ mod tests {
     #[test]
     fn test_sansculottides_non_leap_year() {
         // Non-leap year → 5 Sansculottides
-        let date = RepublicanDate::new(1797, 13, 5).unwrap();
-        assert_eq!(date.get_month(), RepublicanMonth::Sansculottides);
-        assert_eq!(date.get_day(), 5);
+        let date = RepublicanDate::from_calendar_date(1797, RepublicanMonth::Sansculottides, 5).unwrap();
+        assert_eq!(date.month(), RepublicanMonth::Sansculottides);
+        assert_eq!(date.day(), 5);
 
-        let err = RepublicanDate::new(1797, 13, 6).unwrap_err();
+        let err = RepublicanDate::from_calendar_date(1797, RepublicanMonth::Sansculottides, 6).unwrap_err();
         assert_eq!(
             err,
             "Invalid day: 6. In a non-leap year, Sansculottides can have up to 5 days."
@@ -242,22 +348,20 @@ mod tests {
         ];
 
         for i in 1..=10 {
-            let date = RepublicanDate::new(27, 1, i).unwrap();
-            assert_eq!(date.get_day_name(), names[i as usize - 1]);
+            let date = RepublicanDate::from_calendar_date(27, RepublicanMonth::Vendémiaire, i).unwrap();
+            assert_eq!(date.day_name(), names[i as usize - 1]);
         }
 
         // 11th day should cycle back to Primidi
-        let date = RepublicanDate::new(27, 1, 11).unwrap();
-        assert_eq!(date.get_day_name(), "Primidi");
+        let date = RepublicanDate::from_calendar_date(27, RepublicanMonth::Vendémiaire, 11).unwrap();
+        assert_eq!(date.day_name(), "Primidi");
 
         // 27th day should be Septidi
-        let date = RepublicanDate::new(27, 1, 27).unwrap();
-        assert_eq!(date.get_day_name(), "Septidi");
+        let date = RepublicanDate::from_calendar_date(27, RepublicanMonth::Vendémiaire, 27).unwrap();
+        assert_eq!(date.day_name(), "Septidi");
     }
 
-    // -------------------------------
-    // 6️⃣ Seasons
-    // -------------------------------
+    // Seasons
     #[test]
     fn test_season() {
         let autumn = RepublicanMonth::Vendémiaire.get_season();
@@ -273,45 +377,43 @@ mod tests {
         assert_eq!(sc, "Été");
     }
 
-    // -------------------------------
-    // 8️⃣ Tomorrow / Yesterday arithmetic
-    // -------------------------------
+    // Tomorrow / Yesterday arithmetic
     #[test]
     fn test_tomorrow_yesterday() {
-        let d = RepublicanDate::new(38, 1, 30).unwrap();
-        let tomorrow = d.get_tomorrow();
-        assert_eq!(tomorrow.get_day(), 1);
-        assert_eq!(tomorrow.get_month(), RepublicanMonth::Brumaire);
+        let d = RepublicanDate::from_calendar_date(38, RepublicanMonth::Vendémiaire, 30).unwrap();
+        let tomorrow = d.tomorrow();
+        assert_eq!(tomorrow.unwrap().day(), 1);
+        assert_eq!(tomorrow.unwrap().month(), RepublicanMonth::Brumaire);
 
-        let d = RepublicanDate::new(38, 2, 1).unwrap();
-        let yesterday = d.get_yesterday();
-        assert_eq!(yesterday.get_day(), 30);
-        assert_eq!(yesterday.get_month(), RepublicanMonth::Vendémiaire);
+        let d = RepublicanDate::from_calendar_date(38, RepublicanMonth::Brumaire, 1).unwrap();
+        let yesterday = d.yesterday();
+        assert_eq!(yesterday.unwrap().day(), 30);
+        assert_eq!(yesterday.unwrap().month(), RepublicanMonth::Vendémiaire);
     }
 
     #[test]
     fn test_tomorrow_yesterday_sansculottides() {
         // Non-leap year
-        let d = RepublicanDate::new(1797, 13, 5).unwrap();
-        let tomorrow = d.get_tomorrow();
-        assert_eq!(tomorrow.get_day(), 1);
-        assert_eq!(tomorrow.get_month(), RepublicanMonth::Vendémiaire);
-        assert_eq!(tomorrow.get_year(), 1798);
+        let d = RepublicanDate::from_calendar_date(1797, RepublicanMonth::Sansculottides, 5).unwrap();
+        let tomorrow = d.tomorrow();
+        assert_eq!(tomorrow.unwrap().day(), 1);
+        assert_eq!(tomorrow.unwrap().month(), RepublicanMonth::Vendémiaire);
+        assert_eq!(tomorrow.unwrap().year(), 1798);
 
         // Leap year
-        let d = RepublicanDate::new(1796, 13, 6).unwrap();
-        let tomorrow = d.get_tomorrow();
-        assert_eq!(tomorrow.get_day(), 1);
-        assert_eq!(tomorrow.get_month(), RepublicanMonth::Vendémiaire);
-        assert_eq!(tomorrow.get_year(), 1797);
+        let d = RepublicanDate::from_calendar_date(1796, RepublicanMonth::Sansculottides, 6).unwrap();
+        let tomorrow = d.tomorrow();
+        assert_eq!(tomorrow.unwrap().day(), 1);
+        assert_eq!(tomorrow.unwrap().month(), RepublicanMonth::Vendémiaire);
+        assert_eq!(tomorrow.unwrap().year(), 1797);
     }
 
     // Round-trip consistency
     #[test]
     fn test_round_trip() {
-        let d = RepublicanDate::new(1792, 1, 1).unwrap();
-        let tomorrow = d.get_tomorrow();
-        let yesterday = tomorrow.get_yesterday();
+        let d = RepublicanDate::from_calendar_date(1792, RepublicanMonth::Vendémiaire, 1).unwrap();
+        let tomorrow = d.tomorrow().unwrap();
+        let yesterday = tomorrow.yesterday().unwrap();
         assert_eq!(d, yesterday);
     }
 }
