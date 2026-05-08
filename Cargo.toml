@@ -2,6 +2,8 @@
 name = "revolutionary_calendar"
 version = "0.1.0"
 edition = "2024"
+license = "MIT"
+descpription = "A crate to handle date from the french revolutionary calendar."
 
 [dependencies]
 time = "0.3"
