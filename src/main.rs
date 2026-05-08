@@ -1,4 +1,4 @@
-use revolutionary_calendar_calculator::republican;
+use revolutionary_calendar::republican;
 use time::OffsetDateTime;
 
 fn main() {
