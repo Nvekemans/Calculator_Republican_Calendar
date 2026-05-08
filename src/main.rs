@@ -3,9 +3,12 @@ use time::OffsetDateTime;
 
 fn main() {
     let today = OffsetDateTime::now_utc().date();
-    let yesterday = today - time::Duration::days(1);
     let republican_date = republican::date_calculator_romme(today);
-    println!("{}", republican_date);
+    let (year, month, decade, day) = republican_date.to_calendar_date();
+    println!(
+        "Aujourd'hui, nous sommes en {} de la {}e décade de {} de l'an {}.",
+        day, decade, month, year,
+    );
     print_object_of_the_day(&republican_date);
 }
 

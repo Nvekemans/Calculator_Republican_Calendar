@@ -1,5 +1,4 @@
-use crate::republican::month::RepublicanMonth;
-use std::{fmt};
+use crate::republican::{RepublicanDay, month::RepublicanMonth};
 use time::Duration;
 
 /// A date in the Republican calendar.
@@ -8,18 +7,6 @@ pub struct RepublicanDate {
     year: u32,
     month: RepublicanMonth,
     day: u8,
-}
-
-impl fmt::Display for RepublicanDate {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(
-            f,
-            "Nous sommes le {} de {} de l'an {}",
-            self.day_name(),
-            self.month,
-            self.year
-        )
-    }
 }
 
 impl RepublicanDate {
@@ -52,7 +39,7 @@ impl RepublicanDate {
         }
 
         if month == RepublicanMonth::Sansculottides {
-            if (Self::is_leap_year(year)) {
+            if Self::is_leap_year(year) {
                 // Leap year, so there are 6 Sansculottides
                 if day > 6 {
                     return Err(format!(
@@ -121,14 +108,9 @@ impl RepublicanDate {
         self.day
     }
 
-    /// Returns the name of the day in the Republican calendar. The day names repeat every 10 days, so the method uses the modulo operator to determine the correct name based on the day number.
-    pub fn day_name(&self) -> &'static str {
-        // Decadi is the 10th day of the decade, it is first in the list because 10 % 10 = 0. This way, the day names repeat every 10 days.
-        let day_names = [
-            "Décadi", "Primidi", "Duodi", "Tridi", "Quartidi", "Quintidi", "Sextidi", "Septidi",
-            "Octidi", "Nonidi",
-        ];
-        day_names[(self.day % 10) as usize]
+    /// Returns the name of the day in the Republican calendar.
+    pub fn day_of_decade(&self) -> RepublicanDay {
+        RepublicanDay::try_from(self.day).expect("Invalid day number, should be between 1 and 30")
     }
 
     /// Returns the season of the Republican date based on the month. The method delegates the retrieval of the season to the month, which has a method to determine its corresponding season.
@@ -152,9 +134,9 @@ impl RepublicanDate {
         Self::is_leap_year(self.year)
     }
 
-    /// Converts the Republican date to a tuple containing the year, month, and day. This method provides a way to represent the date in a more traditional calendar format.
-    pub fn to_calendar_date(&self) -> (u32, RepublicanMonth, u8) {
-        (self.year, self.month, self.day)
+    /// Converts the Republican date to a tuple containing the year, month, the decade and the day. This method provides a way to represent the date in a more traditional calendar format.
+    pub fn to_calendar_date(&self) -> (u32, RepublicanMonth, u8, RepublicanDay) {
+        (self.year, self.month, self.decade(),self.day_of_decade())
     }
 
     /// Converts the Republican date to a tuple containing the year and the ordinal day of the year.
@@ -162,6 +144,7 @@ impl RepublicanDate {
         (self.year, self.ordinal())
     }
 
+    /// Returns the Republican date for the next day. If the current date is the maximum valid date, it returns None to indicate that there is no tomorrow. 
      pub fn tomorrow(&self) -> Option<Self> {
         if self == &Self::MAX {
             return None; // No tomorrow if we are at the maximum date
@@ -184,6 +167,7 @@ impl RepublicanDate {
         Some(Self::from_calendar_date(year, RepublicanMonth::try_from(month).unwrap(), day).expect("Impossible date generated in get_tomorrow"))
     }
 
+    /// Returns the Republican date for the previous day. If the current date is the minimum valid date, it returns None to indicate that there is no yesterday.
      pub fn yesterday(&self) -> Option<Self> {
         if self == &Self::MIN {
             return None; // No yesterday if we are at the minimum date
@@ -221,6 +205,7 @@ impl RepublicanDate {
         Some(result)
     }
 
+    /// Subtracts a duration from the Republican date, returning the resulting date if the operation is valid.
     pub fn checked_sub(self, duration : Duration) -> Option<Self> {
         let total_days = duration.whole_days();
         if duration.is_negative() {
@@ -342,23 +327,19 @@ mod tests {
     // Day names
     #[test]
     fn test_day_names() {
-        let names = [
-            "Primidi", "Duodi", "Tridi", "Quartidi", "Quintidi", "Sextidi", "Septidi", "Octidi",
-            "Nonidi", "Décadi",
-        ];
 
         for i in 1..=10 {
             let date = RepublicanDate::from_calendar_date(27, RepublicanMonth::Vendémiaire, i).unwrap();
-            assert_eq!(date.day_name(), names[i as usize - 1]);
+            assert_eq!(date.day_of_decade(), RepublicanDay::try_from(i).unwrap());
         }
 
         // 11th day should cycle back to Primidi
         let date = RepublicanDate::from_calendar_date(27, RepublicanMonth::Vendémiaire, 11).unwrap();
-        assert_eq!(date.day_name(), "Primidi");
+        assert_eq!(date.day_of_decade(), RepublicanDay::try_from(1).unwrap());
 
         // 27th day should be Septidi
         let date = RepublicanDate::from_calendar_date(27, RepublicanMonth::Vendémiaire, 27).unwrap();
-        assert_eq!(date.day_name(), "Septidi");
+        assert_eq!(date.day_of_decade(), RepublicanDay::try_from(27).unwrap());
     }
 
     // Seasons
